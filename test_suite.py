@@ -41,8 +41,11 @@ def read_light_sensor(duration=5.0, interval=0.1):
     start = time.time()
     while time.time() - start < duration:
         value = mcp.read_adc(LIGHT_CH)
-        status = "bright" if value < lux_threshold else "dark"
-        print(f"Light: {value:4d} -> {status}")
+        if value < lux_threshold:
+            status = "bright"
+        else:
+            status = "dark"
+        print("Light: {0:4d} -> {1}".format(value, status))
         time.sleep(interval)
 
 def read_sound_sensor(duration=5.0, interval=0.1):
@@ -51,7 +54,7 @@ def read_sound_sensor(duration=5.0, interval=0.1):
     start = time.time()
     while time.time() - start < duration:
         value = mcp.read_adc(SOUND_CH)
-        print(f"Sound: {value:4d}")
+        print("Sound: {0:4d}".format(value))
         if value > sound_threshold:
             GPIO.output(LED_PIN, GPIO.HIGH)
             time.sleep(0.1)
