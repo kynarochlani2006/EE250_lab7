@@ -42,7 +42,7 @@ def read_light_sensor(duration=5.0, interval=0.1):
     while time.time() - start < duration:
         value = mcp.read_adc(LIGHT_CH)
         status = "bright" if value < lux_threshold else "dark"
-        print(f"Light: {value:4d} → {status}")
+        print(f"Light: {value:4d} -> {status}")
         time.sleep(interval)
 
 def read_sound_sensor(duration=5.0, interval=0.1):
