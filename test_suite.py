@@ -3,78 +3,72 @@ import RPi.GPIO as GPIO
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_MCP3008
 
-#using physical pin 11 to blink an LED
-GPIO.setmode(GPIO.BOARD)
-chan_list = [11]
+# Constants
 LED_PIN = 11
-GPIO.setup(chan_list, GPIO.OUT)
-
-# Hardware SPI configuration:
-SPI_PORT   = 0
+SPI_PORT = 0
 SPI_DEVICE = 0
-mcp = Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(SPI_PORT, SPI_DEVICE))
+SPI_PORT2 = 1
+LIGHT_THRESHOLD = 350
+SOUND_THRESHOLD = 350
 
-LIGHT_CH = 0  
-SOUND_CH = 1  
+# Initialize GPIO and MCP3008
+def setup():
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(LED_PIN, GPIO.OUT)
+    return Adafruit_MCP3008.MCP3008(spi=SPI.SpiDev(SPI_PORT, SPI_DEVICE))
 
-# by taking readings and printing them out, find
-# appropriate threshold levels and set them 
-# accordingly. Then, use them to determine
-# when it is light or dark, quiet or loud.
-lux_threshold = 350
-sound_threshold = 350
-
-
-
-# helper functions
-def blink_led(times, interval):
-    """Blink LED n times with delay interval in seconds."""
+# Blink LED
+def blink_led(times, speed):
     for _ in range(times):
-        GPIO.output(LED_PIN, GPIO.HIGH)
-        time.sleep(interval)
         GPIO.output(LED_PIN, GPIO.LOW)
-        time.sleep(interval)
+        time.sleep(speed)
+        GPIO.output(LED_PIN, GPIO.HIGH)
+        time.sleep(speed)
 
-def read_light_sensor(mcp, duration=5.0, interval=0.1):
-    """Read light sensor for duration seconds."""
-    print("\n--- Reading Light Sensor ---")
-    start = time.time()
-    while time.time() - start < duration:
-        value = mcp.read_adc(LIGHT_CH)
-        if value < lux_threshold:
-            status = "bright"
+# Read light and print status
+def read_light(mcp, duration):
+    start_time = time.time()
+    while(time.time() - start_time) < duration:
+        light = mcp.read_adc(SPI_PORT)
+        if light > LIGHT_THRESHOLD:
+            print(f"{light} - showing bright")
         else:
-            status = "dark"
-        print("Light: {0:4d} -> {1}".format(value, status))
-        time.sleep(interval)
+            print(f"{light} - showing dark")
+        time.sleep(0.1)
 
-def read_sound_sensor(mcp, duration=5.0, interval=0.1):
-    """Read sound sensor for duration seconds."""
-    print("\n--- Reading Sound Sensor ---")
-    start = time.time()
-    while time.time() - start < duration:
-        value = mcp.read_adc(SOUND_CH)
-        print("Sound: {0:4d}".format(value))
-        if value > sound_threshold:
+# Read sound and control LED based on sound presence
+def read_sound(mcp, duration):
+    start_time = time.time()
+    while(time.time() - start_time) < duration:
+        sound = mcp.read_adc(SPI_PORT2)
+        if sound > SOUND_THRESHOLD:
+            print(f"{sound} - sound playing")
             GPIO.output(LED_PIN, GPIO.HIGH)
-            time.sleep(0.1)
+        else:
+            print(f"{sound} - sound done")
             GPIO.output(LED_PIN, GPIO.LOW)
-        time.sleep(interval)
+        time.sleep(0.1)
 
-
-while True: 
-    time.sleep(0.5)
-    blink_led(5, 0.5)
-    read_light_sensor(mcp)
-    blink_led(4, 0.2)
-    read_sound_sensor(mcp)
-
-    # Following commands control the state of the output (for manual testing)
-    # GPIO.output(pin, GPIO.HIGH)
-    # GPIO.output(pin, GPIO.LOW)
-
-    # Example for reading raw ADC manually:
-    # val = mcp.read_adc(0)
-    # print(val)
-
+def main():
+    mcp = setup()
     
+    print("Begining of 4 LED: ")
+    blink_led(4, 0.5)
+    print("4 LED blinks done!")
+
+    print("Begining of 5 lights:")
+    read_light(mcp, 5)
+    print("End of 5 lights.")
+
+    print("Begining of 10 LED: ")
+    blink_led(10, 0.2)
+    print("10 LED blinks done!")
+
+    print("Begining of sound taking: ")
+    read_sound(mcp, 10)
+    print("sound taking done")
+    
+    GPIO.cleanup()
+
+if __name__ == '__main__':
+    main()
